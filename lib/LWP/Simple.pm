@@ -49,7 +49,7 @@ class LWP::Simple {
 	}
 
 	method getprint (Str $url) {
-		say get($url);
+		say self.get($url);
 	}
 
 }

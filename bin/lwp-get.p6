@@ -4,5 +4,5 @@ use LWP::Simple;
 
 my $url = @*ARGS[0] // "http://www.rakudo.org";
 
-say LWP::Simple.get($url);
+LWP::Simple.getprint($url);
 
