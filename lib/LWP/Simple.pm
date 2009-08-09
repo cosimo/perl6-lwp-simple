@@ -1,5 +1,9 @@
 #!/usr/bin/env perl6
 
+# ----------------------
+# LWP::Simple for Perl 6
+# ----------------------
+
 use IO::Socket::INET;
 
 class LWP::Simple {
@@ -44,7 +48,12 @@ class LWP::Simple {
 		return $page;
 	}
 
+	method getprint (Str $url) {
+		say get($url);
+	}
+
 }
 
 #say LWP::Simple.get("http://www.google.com");
+#LWP::Simple.getprint('http://www.google.com');
 
