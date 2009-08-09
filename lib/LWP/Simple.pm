@@ -54,6 +54,8 @@ class LWP::Simple {
 
 }
 
+1;
+
 #say LWP::Simple.get("http://www.google.com");
 #LWP::Simple.getprint('http://www.google.com');
 
