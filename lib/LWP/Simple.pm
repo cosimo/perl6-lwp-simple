@@ -21,9 +21,6 @@ class LWP::Simple {
 		$proto .= chop;
 
 		$path = '/' ~ @path.join('/');
-		if ! $path {
-			$path = '/';
-		}
 
 		($hostname, $port) = $hostname.split(':');
 		if ! $port {
