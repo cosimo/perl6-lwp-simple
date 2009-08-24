@@ -14,12 +14,13 @@ class LWP::Simple {
 
 		my $proto;
 		my $hostname;
-		my $path;
+		my ($path, @path);
 		my $port;
 
-		($proto, $hostname, $path) = $url.split(/\/+/);
+		($proto, $hostname, @path) = $url.split(/\/+/);
 		$proto .= chop;
 
+                $path = '/' ~ @path.join('/');
 		if ! $path {
 			$path = '/';
 		}
