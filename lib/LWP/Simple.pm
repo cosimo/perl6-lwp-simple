@@ -20,7 +20,7 @@ class LWP::Simple {
 		($proto, $hostname, @path) = $url.split(/\/+/);
 		$proto .= chop;
 
-                $path = '/' ~ @path.join('/');
+		$path = '/' ~ @path.join('/');
 		if ! $path {
 			$path = '/';
 		}
