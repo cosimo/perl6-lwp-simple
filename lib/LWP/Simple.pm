@@ -35,8 +35,9 @@ class LWP::Simple {
 		my $sock = IO::Socket::INET.new;
 		$sock.open($hostname, $port);
 		$sock.send(
-			"GET {$path} HTTP/1.0\r\n"
+			"GET {$path} HTTP/1.1\r\n"
 			~ "Host: {$hostname}\r\n"
+			~ "Accept: */*\r\n"
 			~ "User-Agent: Perl6-LWP-Simple/0.01\r\n"
 			~ "Connection: close\r\n\r\n"
 		);
