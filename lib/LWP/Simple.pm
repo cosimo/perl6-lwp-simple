@@ -4,7 +4,7 @@
 # LWP::Simple for Perl 6
 # ----------------------
 
-use IO::Socket::INET;
+#use IO::Socket::INET;
 
 class LWP::Simple {
 

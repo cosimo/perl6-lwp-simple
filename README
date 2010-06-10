@@ -1,7 +1,14 @@
 Perl6 LWP::Simple
------------------
+=================
 
 http://github.com/cosimo/perl6-lwp-simple/
 
 This is a quick & dirty  implementation
 of a LWP::Simple clone for Rakudo Perl 6
+
+
+Current status
+==============
+
+As of 2010-06-10, runs with rakudo based on parrot r47428
+
