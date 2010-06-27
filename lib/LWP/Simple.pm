@@ -4,41 +4,35 @@
 # LWP::Simple for Perl 6
 # ----------------------
 
-#use IO::Socket::INET;
-
 class LWP::Simple {
+
+    method default_port () {
+        return 80;
+    }
+
+    method default_port (Str $scheme) {
+        given $scheme {
+            when ("http")   { return 80  }
+            when ("https")  { return 443 }
+            when ("ftp")    { return 21  }
+            when ("ssh")    { return 22  }
+            default { return 80 }
+        }
+    }
 
     method get (Str $url) {
 
         return unless $url;
 
-        my $proto;
-        my $hostname;
-        my ($path, @path);
-        my $port;
+        my ($scheme, $hostname, $port, $path) = self.parse_url($url);
 
-        ($proto, $hostname, @path) = $url.split(/\/+/);
-        $proto .= chop;
-
-        $path = '/' ~ @path.join('/');
-
-        ($hostname, $port) = $hostname.split(':');
-        if ! $port {
-            $port = 80;
-        }
-
-        #say 'hostname:', $hostname;
-        #say 'port:', $port;
-        #say 'path:', $path;
-        #say 'proto:', $proto;
-
-        my $sock = IO::Socket::INET.new;
+        my $sock = IO::Socket::INET.new();
         $sock.open($hostname, $port);
         $sock.send(
             "GET {$path} HTTP/1.1\r\n"
             ~ "Host: {$hostname}\r\n"
             ~ "Accept: */*\r\n"
-            ~ "User-Agent: Perl6-LWP-Simple/0.01\r\n"
+            ~ "User-Agent: Perl6-LWP-Simple/0.02\r\n"
             ~ "Connection: close\r\n\r\n"
         );
 
@@ -50,6 +44,33 @@ class LWP::Simple {
 
     method getprint (Str $url) {
         say self.get($url);
+    }
+
+    method parse_url (Str $url) {
+
+        my $scheme;
+        my $hostname;
+        my $port;
+        my @path;
+        my $path;
+
+        @path = $url.split(/\/+/);
+        $scheme = @path.shift;
+        $scheme .= chop;
+        $hostname = @path.shift;
+        $path = '/' ~ @path.join('/');
+
+        #say 'scheme:', $scheme;
+        #say 'hostname:', $hostname;
+        #say 'port:', $port;
+        #say 'path:', @path;
+
+        ($hostname, $port) = $hostname.split(':');
+        if ! $port {
+            $port = self.default_port($scheme);
+        }
+
+        return ($scheme, $hostname, $port, $path);
     }
 
 }
