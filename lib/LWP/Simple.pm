@@ -6,6 +6,13 @@
 
 class LWP::Simple {
 
+    our $VERSION = 0.03;
+
+    # TODO - Not implemented yet
+    method base64encode (Str $user, Str $pass) {
+        return "fake:notimplementedyet";
+    }
+
     method default_port () {
         return 80;
     }
@@ -20,20 +27,46 @@ class LWP::Simple {
         }
     }
 
+    method has_basic_auth (Str $host) {
+
+        # ^ <username> : <password> @ <hostname> $
+        if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
+            return $0, $1, $2;
+        }
+
+        return;
+    }
+
     method get (Str $url) {
 
         return unless $url;
 
         my ($scheme, $hostname, $port, $path) = self.parse_url($url);
 
+        my %headers = (
+            Accept => '*/*',
+            User-Agent => "Perl6-LWP-Simple/$VERSION",
+            Connection => 'close',
+        );
+
+        if my @auth = self.has_basic_auth($hostname) {
+            $hostname = @auth[2];
+            my $user = @auth[0];
+            my $pass = @auth[1];
+            my $base64enc = self.base64encode($user, $pass);
+            %headers<Authorization> = "Basic $base64enc";
+        }
+
+        %headers<Host> = $hostname;
+
+        my $headers_str = self.stringify_headers(%headers);
+
         my $sock = IO::Socket::INET.new();
         $sock.open($hostname, $port);
         $sock.send(
             "GET {$path} HTTP/1.1\r\n"
-            ~ "Host: {$hostname}\r\n"
-            ~ "Accept: */*\r\n"
-            ~ "User-Agent: Perl6-LWP-Simple/0.02\r\n"
-            ~ "Connection: close\r\n\r\n"
+            ~ $headers_str
+            ~ "\r\n"
         );
 
         my $page = $sock.recv();
@@ -44,6 +77,21 @@ class LWP::Simple {
 
     method getprint (Str $url) {
         say self.get($url);
+    }
+
+    method getstore (Str $url, Str $filename) {
+        return unless defined $url;
+
+        my $content = self.get($url);
+        if ! $content {
+            return
+        }
+
+        my $fh = open($filename, :w);
+        my $ok = $fh.print($content);
+        $fh.close; 
+
+        return $ok;
     }
 
     method parse_url (Str $url) {
@@ -65,18 +113,26 @@ class LWP::Simple {
         #say 'port:', $port;
         #say 'path:', @path;
 
-        ($hostname, $port) = $hostname.split(':');
-        if ! $port {
+        # rakudo: Regex with captures doesn't work here
+        if $hostname ~~ /^ .+ \: \d+ $/ {
+            ($hostname, $port) = $hostname.split(':');
+        }
+        else {
             $port = self.default_port($scheme);
         }
 
         return ($scheme, $hostname, $port, $path);
     }
 
+    method stringify_headers (%headers) {
+        my $str = '';
+        for sort %headers.keys {
+            $str ~= $_ ~ ': ' ~ %headers{$_} ~ "\r\n";
+        }
+        return $str;
+    }
+
 }
 
 1;
-
-#say LWP::Simple.get("http://www.google.com");
-#LWP::Simple.getprint('http://www.google.com');
 
