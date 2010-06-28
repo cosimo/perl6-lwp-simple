@@ -1,16 +1,18 @@
-#!/usr/bin/env perl6
-
 # ----------------------
 # LWP::Simple for Perl 6
 # ----------------------
 
+use v6;
+use MIME::Base64;
+
 class LWP::Simple {
 
-    our $VERSION = 0.03;
+    our $VERSION = 0.04;
 
-    # TODO - Not implemented yet
-    method base64encode (Str $user, Str $pass) {
-        return "fake:notimplementedyet";
+    method base64encode ($user, $pass) {
+        my $mime = MIME::Base64.new();
+        my $encoded = $mime.encode_base64($user ~ ':' ~ $pass);
+        return $encoded;
     }
 
     method default_port () {
@@ -31,7 +33,10 @@ class LWP::Simple {
 
         # ^ <username> : <password> @ <hostname> $
         if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
-            return $0, $1, $2;
+            my $host = $0.Str;
+            my $user = $1.Str;
+            my $pass = $2.Str;
+            return $host, $user, $pass;
         }
 
         return;

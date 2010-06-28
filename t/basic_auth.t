@@ -21,5 +21,12 @@ is($user, 'cosimo', 'Basic auth info extracted correctly: user');
 is($pass, 'eelst',  'Basic auth info extracted correctly: pass');
 is($host, 'faveclub.eelst.com',  'Basic auth info extracted correctly: hostname');
 
+# Encode test
+is(
+    LWP::Simple.base64encode('someuser', 'somepass'),
+    'c29tZXVzZXI6c29tZXBhc3M=',
+    'Base64 encoding works'
+);
+
 done_testing;
 
