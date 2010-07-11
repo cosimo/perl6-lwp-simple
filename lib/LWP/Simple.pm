@@ -48,7 +48,6 @@ method get (Str $url) {
     my ($scheme, $hostname, $port, $path) = self.parse_url($url);
 
     my %headers = (
-        #Accept => '*/*',
         User-Agent => "Perl6-LWP-Simple/$VERSION",
         Connection => 'close',
     );
@@ -66,8 +65,28 @@ method get (Str $url) {
     my ($status, $resp_headers, $content) =
         self.make_request($hostname, $port, $path, %headers);
 
+    # Follow redirects. Shall we?
+    if $status ~~ m/ 30 <[12]> / {
+
+        my %resp_headers = $resp_headers;
+        my $new_url = %resp_headers<Location>;
+        if ! $new_url {
+            say "Redirect $status without a new URL?";
+            return;
+        }
+
+        # Watch out for too many redirects.
+        # Need to find a way to store a class member
+        #if $redirects++ > 10 {
+        #    say "Too many redirects!";
+        #    return;
+        #}
+
+        return self.get($new_url);
+    }
+
     # Response successful. Return the content as a scalar
-    if $status ~~ /200/ {
+    if $status ~~ m/200/ {
         my $page_content = $content.join("\n");
         return $page_content;
     }
@@ -118,12 +137,12 @@ method make_request ($hostname, $port, $path, %headers) {
     my $headers = self.stringify_headers(%headers);
 
     my $sock = IO::Socket::INET.new;
-    $sock.open($hostname, $port);
-    $sock.send(
-        "GET {$path} HTTP/1.1\r\n"
+    $sock.open($hostname, $port, :bin);
+    my $req_str = "GET {$path} HTTP/1.1\r\n"
         ~ $headers
-        ~ "\r\n"
-    );
+        ~ "\r\n";
+
+    $sock.send($req_str);
 
     my $resp = $sock.recv();
     $sock.close();
@@ -134,6 +153,7 @@ method make_request ($hostname, $port, $path, %headers) {
 }
 
 method parse_response (Str $resp) {
+
     my %header;
     my @content = $resp.split(/\n/);
 
@@ -165,7 +185,7 @@ method getstore (Str $url, Str $filename) {
         return
     }
 
-    my $fh = open($filename, :w);
+    my $fh = open($filename, :bin, :w);
     my $ok = $fh.print($content);
     $fh.close; 
 
