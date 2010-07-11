@@ -7,7 +7,7 @@ my $fname = "./tmp-getstore-$*PID";
 unlink $fname;
 
 ok(
-    LWP::Simple.getstore('http://www.rakudo.org', $fname),
+    LWP::Simple.getstore('http://www.opera.com', $fname),
     'getstore() returned success'
 );
 
@@ -16,7 +16,7 @@ ok($fh, 'Opened file handle written by getstore()');
 
 my $found = 0;
 for $fh.lines {
-    when /Rakudo \s+ Perl/ {
+    when /Opera \s+ browser/ {
         $found = 1;
         last;
     }
