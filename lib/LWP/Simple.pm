@@ -48,7 +48,7 @@ method get (Str $url) {
     my ($scheme, $hostname, $port, $path) = self.parse_url($url);
 
     my %headers = (
-        Accept => '*/*',
+        #Accept => '*/*',
         User-Agent => "Perl6-LWP-Simple/$VERSION",
         Connection => 'close',
     );
@@ -68,7 +68,7 @@ method get (Str $url) {
 
     # Response successful. Return the content as a scalar
     if $status ~~ /200/ {
-        my $page_content = $content.join('\n');
+        my $page_content = $content.join("\n");
         return $page_content;
     }
 
