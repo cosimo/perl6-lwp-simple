@@ -20,11 +20,11 @@ method default_port () {
 
 method default_port (Str $scheme) {
     given $scheme {
-        when ("http")   { return 80  }
-        when ("https")  { return 443 }
-        when ("ftp")    { return 21  }
-        when ("ssh")    { return 22  }
-        default { return 80 }
+        when "http"   { return 80  }
+        when "https"  { return 443 }
+        when "ftp"    { return 21  }
+        when "ssh"    { return 22  }
+        default       { return 80 }
     }
 }
 
@@ -76,6 +76,43 @@ method get (Str $url) {
     return;
 }
 
+# In-place removal of chunked transfer markers
+method decode_chunked (@content) {
+    my $pos = 0;
+
+    while @content {
+
+        # Chunk start: length as hex word
+        my $length = splice(@content, $pos, 1);
+
+        # Chunk length is hex and could contain
+        # chunk-extensions (RFC2616, 3.6.1). Ex.: '5f32; xxx=...'
+        if $length ~~ m/^ \w+ / {
+            $length = :16($length);
+        } else {
+            last;
+        }
+
+        # Continue reading for '$length' bytes
+        while $length > 0 && @content.exists($pos) {
+            my $line = @content[$pos];
+            $length -= $line.bytes;    # .bytes, not .chars
+            $length--;                 # <CR>
+            $pos++;
+        }
+
+        # Stop decoding when a zero is encountered, RFC2616 again
+        if $length == 0 {
+            # Truncate document here
+            splice(@content, $pos);
+            last;
+        }
+
+    }
+
+    return @content;
+}
+
 method make_request ($hostname, $port, $path, %headers) {
 
     my $headers = self.stringify_headers(%headers);
@@ -107,6 +144,10 @@ method parse_response (Str $resp) {
         last if $line eq '';
         my ($name, $value) = $line.split(': ');
         %header{$name} = $value;
+    }
+
+    if %header.exists('Transfer-Encoding') && %header<Transfer-Encoding> ~~ m/:i chunked/ {
+        @content = self.decode_chunked(@content);
     }
 
     return $status_line, \%header, \@content;
