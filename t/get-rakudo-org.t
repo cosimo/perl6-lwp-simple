@@ -10,5 +10,7 @@ ok(
     'homepage is downloaded and has "Rakudo Perl" in it'
 );
 
+#diag("Content\n" ~ $html);
+
 done_testing;
 
