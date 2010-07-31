@@ -137,7 +137,7 @@ method make_request ($hostname, $port, $path, %headers) {
     my $headers = self.stringify_headers(%headers);
 
     my $sock = IO::Socket::INET.new;
-    $sock.open($hostname, $port, :bin);
+    $sock.open($hostname, $port.Int, :bin);
     my $req_str = "GET {$path} HTTP/1.1\r\n"
         ~ $headers
         ~ "\r\n";
