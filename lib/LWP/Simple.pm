@@ -4,9 +4,9 @@
 use v6;
 use MIME::Base64;
 
-class LWP::Simple:auth<cosimo>:ver<0.05>;
+class LWP::Simple:auth<cosimo>:ver<0.06>;
 
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 method base64encode ($user, $pass) {
     my $mime = MIME::Base64.new();
@@ -214,6 +214,8 @@ method parse_url (Str $url) {
     # rakudo: Regex with captures doesn't work here
     if $hostname ~~ /^ .+ \: \d+ $/ {
         ($hostname, $port) = $hostname.split(':');
+        # sock.open() fails if port is a Str
+        $port = $port.Int;
     }
     else {
         $port = self.default_port($scheme);

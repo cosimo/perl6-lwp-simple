@@ -37,5 +37,10 @@ for @test -> $test, $url, $results {
     is($path, $results.[3], "Path for $url is $path");
 }
 
+# Check that port is returned as a number,
+# or IO::Socket::INET.open() fails
+my ($scheme, $host, $port, $path) = LWP::Simple.parse_url('http://localhost:5984/foo/test/');
+is($port.WHAT, 'Int()', 'port is returned as a Int, to avoid problems on sock.open()');
+
 done_testing;
 
