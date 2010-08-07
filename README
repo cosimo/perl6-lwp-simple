@@ -6,6 +6,12 @@ http://github.com/cosimo/perl6-lwp-simple/
 This is a quick & dirty  implementation
 of a LWP::Simple clone for Rakudo Perl 6
 
+Dependencies
+============
+
+LWP::Simple depends on MIME::Base64, which
+you can find at http://modules.perl6.org/
+
 
 Current status
 ==============
