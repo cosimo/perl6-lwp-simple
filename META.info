@@ -1,0 +1,11 @@
+{
+    "name"        : "LWP::Simple",
+    "version"     : "0.07",
+    "description" : "LWP::Simple quick & dirty implementation for Rakudo Perl 6",
+    "depends"     : [ "MIME::Base64" ],
+    "author"      : "Cosimo Streppone",
+    "authority"   : "cosimo",
+    "repo-type"   : "git",
+    "repo-url"    : "git://github.com/cosimo/perl6-lwp-simple.git"
+}
+
