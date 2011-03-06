@@ -4,9 +4,9 @@
 use v6;
 use MIME::Base64;
 
-class LWP::Simple:auth<cosimo>:ver<0.06>;
+class LWP::Simple:auth<cosimo>:ver<0.07>;
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 method base64encode ($user, $pass) {
     my $mime = MIME::Base64.new();
