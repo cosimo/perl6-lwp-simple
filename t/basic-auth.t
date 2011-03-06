@@ -28,5 +28,5 @@ is(
     'Base64 encoding works'
 );
 
-done_testing;
+done;
 

@@ -46,5 +46,5 @@ ok(
     'Composite headers are stringified correctly'
 );
 
-done_testing;
+done;
 

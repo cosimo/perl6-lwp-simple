@@ -26,5 +26,5 @@ ok($found, 'Found pattern in downloaded file');
 
 ok(unlink($fname), 'Delete the temporary file');
 
-done_testing;
+done;
 

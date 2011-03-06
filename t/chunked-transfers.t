@@ -119,4 +119,4 @@ ok(! $content_str.match('0'), 'No remaining chunked transfer markers at the end'
 ok($content_str.match('13 characters'), 'Actual content is there');
 ok($content_str.match('another 15 here'), 'Actual content is there');
 
-done_testing;
+done;

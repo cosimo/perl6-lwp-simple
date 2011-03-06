@@ -12,5 +12,5 @@ ok(
 
 #diag("Content\n" ~ $html);
 
-done_testing;
+done;
 
