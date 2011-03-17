@@ -1,16 +1,8 @@
 use v6;
 use Test;
 
-plan 2;
+plan 1;
 
-my $s = IO::Socket::INET.new;
+my $s = IO::Socket::INET.new(:host('72.14.176.61'), :port(80));
 ok($s, 'Socket object created');
-
-#my $opened = $s.open('www.rakudo.org', 80);
-my $opened = $s.open('72.14.176.61', 80);
-ok($opened, 'Socket to www.rakudo.org:80 opened');
-
-if ! $opened {
-    diag("Failed opening the socket: $opened");
-}
 

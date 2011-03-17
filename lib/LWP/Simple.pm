@@ -132,18 +132,17 @@ method decode_chunked (@content) {
     return @content;
 }
 
-method make_request ($hostname, $port, $path, %headers) {
+method make_request ($host, $port as Int, $path, %headers) {
 
     my $headers = self.stringify_headers(%headers);
 
-    my $sock = IO::Socket::INET.new;
-    $sock.open($hostname, $port.Int, :bin);
+    my $sock = IO::Socket::INET.new(:$host, :$port);
     my $req_str = "GET {$path} HTTP/1.1\r\n"
         ~ $headers
         ~ "\r\n";
 
     $sock.send($req_str);
-
+;
     my $resp = $sock.recv();
     $sock.close();
 
