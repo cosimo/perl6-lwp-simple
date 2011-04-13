@@ -41,16 +41,14 @@ method has_basic_auth (Str $host) {
     return;
 }
 
-method get (Str $url) {
+method get (Str $url, %headers = {}, Any $content?) {
 
     return unless $url;
 
     my ($scheme, $hostname, $port, $path) = self.parse_url($url);
 
-    my %headers = (
-        User-Agent => "Perl6-LWP-Simple/$VERSION",
-        Connection => 'close',
-    );
+    %headers{'Connection'} = 'close';
+    %headers{'User-Agent'} //= "Perl6-LWP-Simple/$VERSION";
 
     if my @auth = self.has_basic_auth($hostname) {
         $hostname = @auth[2];
@@ -62,8 +60,16 @@ method get (Str $url) {
 
     %headers<Host> = $hostname;
 
-    my ($status, $resp_headers, $content) =
-        self.make_request($hostname, $port, $path, %headers);
+    if ($content.defined) {
+        # Attach Content-Length header
+        # as recommended in RFC2616 section 14.3.
+        # Note: Empty content is also a content,
+        # header value equals to zero is valid.
+        %headers{'Content-Length'} = $content.bytes;
+    }
+
+    my ($status, $resp_headers, $resp_content) =
+        self.make_request($hostname, $port, $path, %headers, $content);
 
     # Follow redirects. Shall we?
     if $status ~~ m/ 30 <[12]> / {
@@ -87,7 +93,7 @@ method get (Str $url) {
 
     # Response successful. Return the content as a scalar
     if $status ~~ m/200/ {
-        my $page_content = $content.join("\n");
+        my $page_content = $resp_content.join("\n");
         return $page_content;
     }
 
@@ -132,7 +138,7 @@ method decode_chunked (@content) {
     return @content;
 }
 
-method make_request ($host, $port as Int, $path, %headers) {
+method make_request ($host, $port as Int, $path, %headers, $content?) {
 
     my $headers = self.stringify_headers(%headers);
 
@@ -141,14 +147,18 @@ method make_request ($host, $port as Int, $path, %headers) {
         ~ $headers
         ~ "\r\n";
 
+    # attach $content if given
+    # (string context is forced by concatenation)
+    $req_str ~= $content if $content.defined;
+
     $sock.send($req_str);
-;
+
     my $resp = $sock.recv();
     $sock.close();
 
-    my ($status, $resp_headers, $content) = self.parse_response($resp);
+    my ($status, $resp_headers, $resp_content) = self.parse_response($resp);
 
-    return ($status, $resp_headers, $content);
+    return ($status, $resp_headers, $resp_content);
 }
 
 method parse_response (Str $resp) {
