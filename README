@@ -16,7 +16,7 @@ you can find at http://modules.perl6.org/
 Current status
 ==============
 
-As of 2010-07-11, runs with all recent rakudo builds.
+As of 2011-04-22, runs with all recent rakudo builds.
 It correctly follows redirects, but no infinite redirects
 detection yet.
 
