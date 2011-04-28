@@ -5,7 +5,6 @@
     "depends"     : [ "MIME::Base64" ],
     "author"      : "Cosimo Streppone",
     "authority"   : "cosimo",
-    "repo-type"   : "git",
-    "repo-url"    : "git://github.com/cosimo/perl6-lwp-simple.git"
+    "source-url"  : "git://github.com/cosimo/perl6-lwp-simple.git"
 }
 
