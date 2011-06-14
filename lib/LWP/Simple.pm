@@ -209,11 +209,11 @@ method parse_url (Str $url) {
     my @path;
     my $path;
 
-    @path = $url.split(/\/+/);
+    @path = $url.split(/\/+/, 3);
     $scheme = @path.shift;
     $scheme .= chop;
     $hostname = @path.shift;
-    $path = '/' ~ @path.join('/');
+    $path = '/' ~ (@path[0] // '');
 
     #say 'scheme:', $scheme;
     #say 'hostname:', $hostname;

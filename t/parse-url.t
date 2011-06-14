@@ -27,6 +27,11 @@ my @test = (
     'FTP url',
         'ftp://get.opera.com/pub/opera/win/1054/en/Opera_1054_en_Setup.exe',
         ['ftp', 'get.opera.com', 21, '/pub/opera/win/1054/en/Opera_1054_en_Setup.exe'],
+
+    'HTTP URL with double-slashes',
+        'http://tinyurl.com/api-create.php?url=http://digg.com',
+        ['http', 'tinyurl.com', 80, '/api-create.php?url=http://digg.com'],
+
 );
 
 for @test -> $test, $url, $results {
