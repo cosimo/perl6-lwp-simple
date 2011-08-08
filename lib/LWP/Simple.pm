@@ -3,29 +3,16 @@
 # ----------------------
 use v6;
 use MIME::Base64;
+use URI;
 
 class LWP::Simple:auth<cosimo>:ver<0.07>;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 method base64encode ($user, $pass) {
     my $mime = MIME::Base64.new();
     my $encoded = $mime.encode_base64($user ~ ':' ~ $pass);
     return $encoded;
-}
-
-method default_port () {
-    return 80;
-}
-
-method default_port (Str $scheme) {
-    given $scheme {
-        when "http"   { return 80  }
-        when "https"  { return 443 }
-        when "ftp"    { return 21  }
-        when "ssh"    { return 22  }
-        default       { return 80 }
-    }
 }
 
 method has_basic_auth (Str $host) {
@@ -202,35 +189,10 @@ method getstore (Str $url, Str $filename) {
 }
 
 method parse_url (Str $url) {
-
-    my $scheme;
-    my $hostname;
-    my $port;
-    my @path;
-    my $path;
-
-    @path = $url.split(/\/+/, 3);
-    $scheme = @path.shift;
-    $scheme .= chop;
-    $hostname = @path.shift;
-    $path = '/' ~ (@path[0] // '');
-
-    #say 'scheme:', $scheme;
-    #say 'hostname:', $hostname;
-    #say 'port:', $port;
-    #say 'path:', @path;
-
-    # rakudo: Regex with captures doesn't work here
-    if $hostname ~~ /^ .+ \: \d+ $/ {
-        ($hostname, $port) = $hostname.split(':');
-        # sock.open() fails if port is a Str
-        $port = $port.Int;
-    }
-    else {
-        $port = self.default_port($scheme);
-    }
-
-    return ($scheme, $hostname, $port, $path);
+    my $u = URI.new($url);
+    my $path = $u.path_query;
+	
+    return ($u.scheme, $u.host, $u.port, $path eq '' ?? '/' !! $path);	
 }
 
 method stringify_headers (%headers) {
