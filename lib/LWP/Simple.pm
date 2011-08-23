@@ -20,12 +20,12 @@ method base64encode ($user, $pass) {
 method has_basic_auth (Str $host) {
 
     # ^ <username> : <password> @ <hostname> $
-    warn "has_basic_auth deprecated - not in p5 LWP simple and now returned by pares_url";
+    warn "has_basic_auth deprecated - not in p5 LWP simple and now returned by parse_url";
     if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
-        my $host = $0.Str;
-        my $user = $1.Str;
-        my $pass = $2.Str;
-        return $host, $user, $pass;
+        my $user = $0.Str;
+        my $pass = $1.Str;
+        my $host = $2.Str;		
+        return $user, $pass, $host;
     }
 
     return;
