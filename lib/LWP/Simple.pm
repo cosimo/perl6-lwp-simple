@@ -5,7 +5,7 @@ use v6;
 use MIME::Base64;
 use URI;
 
-class LWP::Simple:auth<cosimo>:ver<0.07>;
+class LWP::Simple:auth<cosimo>:ver<0.08>;
 
 our $VERSION = '0.08';
 
