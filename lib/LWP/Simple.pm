@@ -3,10 +3,13 @@
 # ----------------------
 use v6;
 use MIME::Base64;
+use URI;
 
 class LWP::Simple:auth<cosimo>:ver<0.07>;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
+
+enum RequestType <GET POST>;
 
 method base64encode ($user, $pass) {
     my $mime = MIME::Base64.new();
@@ -14,53 +17,48 @@ method base64encode ($user, $pass) {
     return $encoded;
 }
 
-method default_port () {
-    return 80;
-}
-
-method default_port (Str $scheme) {
-    given $scheme {
-        when "http"   { return 80  }
-        when "https"  { return 443 }
-        when "ftp"    { return 21  }
-        when "ssh"    { return 22  }
-        default       { return 80 }
-    }
-}
-
 method has_basic_auth (Str $host) {
 
     # ^ <username> : <password> @ <hostname> $
+    warn "has_basic_auth deprecated - not in p5 LWP simple and now returned by parse_url";
     if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
-        my $host = $0.Str;
-        my $user = $1.Str;
-        my $pass = $2.Str;
-        return $host, $user, $pass;
+        my $user = $0.Str;
+        my $pass = $1.Str;
+        my $host = $2.Str;		
+        return $user, $pass, $host;
     }
 
     return;
 }
 
-method get (Str $url, %headers = {}, Any $content?) {
+method get (Str $url) {
+    self.request_shell(RequestType::GET, $url)
+}
+
+method post (Str $url, %headers = {}, Any $content?) {
+    self.request_shell(RequestType::POST, $url, %headers, $content)
+}
+
+method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
     return unless $url;
 
-    my ($scheme, $hostname, $port, $path) = self.parse_url($url);
+    my ($scheme, $hostname, $port, $path, $auth) = self.parse_url($url);
 
     %headers{'Connection'} = 'close';
     %headers{'User-Agent'} //= "Perl6-LWP-Simple/$VERSION";
 
-    if my @auth = self.has_basic_auth($hostname) {
-        $hostname = @auth[2];
-        my $user = @auth[0];
-        my $pass = @auth[1];
+    if $auth {
+        $hostname = $auth<host>;
+        my $user = $auth<user>;
+        my $pass = $auth<password>;
         my $base64enc = self.base64encode($user, $pass);
         %headers<Authorization> = "Basic $base64enc";
     }
 
     %headers<Host> = $hostname;
 
-    if ($content.defined) {
+    if ($rt ~~ RequestType::POST && $content.defined) {
         # Attach Content-Length header
         # as recommended in RFC2616 section 14.3.
         # Note: Empty content is also a content,
@@ -69,7 +67,7 @@ method get (Str $url, %headers = {}, Any $content?) {
     }
 
     my ($status, $resp_headers, $resp_content) =
-        self.make_request($hostname, $port, $path, %headers, $content);
+        self.make_request($rt, $hostname, $port, $path, %headers, $content);
 
     # Follow redirects. Shall we?
     if $status ~~ m/ 30 <[12]> / {
@@ -88,7 +86,7 @@ method get (Str $url, %headers = {}, Any $content?) {
         #    return;
         #}
 
-        return self.get($new_url);
+        return self.request_shell($rt, $new_url, %headers, $content);
     }
 
     # Response successful. Return the content as a scalar
@@ -138,12 +136,14 @@ method decode_chunked (@content) {
     return @content;
 }
 
-method make_request ($host, $port as Int, $path, %headers, $content?) {
+method make_request (
+    RequestType $rt, $host, $port as Int, $path, %headers, $content?
+) {
 
     my $headers = self.stringify_headers(%headers);
 
     my $sock = IO::Socket::INET.new(:$host, :$port);
-    my $req_str = "GET {$path} HTTP/1.1\r\n"
+    my $req_str = $rt.Stringy ~ " {$path} HTTP/1.1\r\n"
         ~ $headers
         ~ "\r\n";
 
@@ -202,35 +202,22 @@ method getstore (Str $url, Str $filename) {
 }
 
 method parse_url (Str $url) {
-
-    my $scheme;
-    my $hostname;
-    my $port;
-    my @path;
-    my $path;
-
-    @path = $url.split(/\/+/, 3);
-    $scheme = @path.shift;
-    $scheme .= chop;
-    $hostname = @path.shift;
-    $path = '/' ~ (@path[0] // '');
-
-    #say 'scheme:', $scheme;
-    #say 'hostname:', $hostname;
-    #say 'port:', $port;
-    #say 'path:', @path;
-
-    # rakudo: Regex with captures doesn't work here
-    if $hostname ~~ /^ .+ \: \d+ $/ {
-        ($hostname, $port) = $hostname.split(':');
-        # sock.open() fails if port is a Str
-        $port = $port.Int;
-    }
-    else {
-        $port = self.default_port($scheme);
-    }
-
-    return ($scheme, $hostname, $port, $path);
+    my $u = URI.new($url);
+    my $path = $u.path_query;
+    
+    my $user_info = $u.grammar.parse_result<URI_reference><URI><hier_part><authority><userinfo>;
+    
+    return (
+        $u.scheme, 
+        $user_info ?? "{$user_info}@{$u.host}" !! $u.host, 
+        $u.port, 
+        $path eq '' ?? '/' !! $path,
+        $user_info ?? {
+            host => $u.host,
+            user => ~ $user_info[0]<likely_userinfo_component>[0],
+            password => ~ $user_info[0]<likely_userinfo_component>[1]
+        } !! Nil
+    );    
 }
 
 method stringify_headers (%headers) {
