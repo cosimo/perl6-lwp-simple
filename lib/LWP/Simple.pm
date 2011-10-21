@@ -24,7 +24,7 @@ method has_basic_auth (Str $host) {
     if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
         my $user = $0.Str;
         my $pass = $1.Str;
-        my $host = $2.Str;		
+        my $host = $2.Str;
         return $user, $pass, $host;
     }
 
@@ -196,7 +196,7 @@ method getstore (Str $url, Str $filename) {
 
     my $fh = open($filename, :bin, :w);
     my $ok = $fh.print($content);
-    $fh.close; 
+    $fh.close;
 
     return $ok;
 }
@@ -204,20 +204,20 @@ method getstore (Str $url, Str $filename) {
 method parse_url (Str $url) {
     my $u = URI.new($url);
     my $path = $u.path_query;
-    
+
     my $user_info = $u.grammar.parse_result<URI_reference><URI><hier_part><authority><userinfo>;
-    
+
     return (
-        $u.scheme, 
-        $user_info ?? "{$user_info}@{$u.host}" !! $u.host, 
-        $u.port, 
+        $u.scheme,
+        $user_info ?? "{$user_info}@{$u.host}" !! $u.host,
+        $u.port,
         $path eq '' ?? '/' !! $path,
         $user_info ?? {
             host => $u.host,
             user => ~ $user_info[0]<likely_userinfo_component>[0],
             password => ~ $user_info[0]<likely_userinfo_component>[1]
         } !! Nil
-    );    
+    );
 }
 
 method stringify_headers (%headers) {

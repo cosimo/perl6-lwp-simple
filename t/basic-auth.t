@@ -1,7 +1,7 @@
 #
 # Test the basic auth code path
 #
- 
+
 use v6;
 use Test;
 
