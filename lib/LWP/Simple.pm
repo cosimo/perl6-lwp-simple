@@ -72,7 +72,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
     # Follow redirects. Shall we?
     if $status ~~ m/ 30 <[12]> / {
 
-        my %resp_headers = $resp_headers;
+        my %resp_headers = $resp_headers.hash;
         my $new_url = %resp_headers<Location>;
         if ! $new_url {
             say "Redirect $status without a new URL?";
