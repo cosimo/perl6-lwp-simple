@@ -111,7 +111,7 @@ method decode_chunked (@content) {
         # Chunk length is hex and could contain
         # chunk-extensions (RFC2616, 3.6.1). Ex.: '5f32; xxx=...'
         if $length ~~ m/^ \w+ / {
-            $length = :16(~$length);
+            $length = :16(~$/);
         } else {
             last;
         }
@@ -179,7 +179,7 @@ method parse_response (Str $resp) {
         @content = self.decode_chunked(@content);
     }
 
-    return $status_line, \%header, \@content;
+    return $status_line, %header.item, @content.item;
 }
 
 method getprint (Str $url) {

@@ -22,8 +22,7 @@ since there is no "Transfer-Encoding: chunked" header
 my ($status, $headers, $content) = $lwp.parse_response($testcase-no-chunked);
 is($status, q<HTTP/1.1 200 OK>, 'Status parsed correctly');
 
-# Only way to dereference I have found
-my %headers = $headers;
+my %headers = $headers.hash;
 is(%headers<Server>, 'random/3.14', 'Server header parsed correctly');
 is(%headers<Content-type>, 'text/plain', 'Content-type header parsed correctly');
 ok(! %headers.exists('Transfer-Encoding'), 'Transfer-Encoding header not found');
@@ -57,8 +56,7 @@ another 15 here
 ($status, $headers, $content) = $lwp.parse_response($testcase-chunked);
 is($status, q<HTTP/1.0 200 OK>, 'Status parsed correctly');
 
-# Only way to dereference I have found
-%headers = $headers;
+%headers = $headers.hash;
 is(%headers<Server>, 'Apache/2.2.9', 'Server header parsed correctly');
 is(%headers<Content-type>, 'text/plain', 'Content-type header parsed correctly');
 
