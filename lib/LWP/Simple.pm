@@ -111,7 +111,7 @@ method decode_chunked (@content) {
         # Chunk length is hex and could contain
         # chunk-extensions (RFC2616, 3.6.1). Ex.: '5f32; xxx=...'
         if $length ~~ m/^ \w+ / {
-            $length = :16($length);
+            $length = :16(~$length);
         } else {
             last;
         }
