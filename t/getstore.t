@@ -6,7 +6,7 @@ use LWP::Simple;
 plan 4;
 
 my $fname = "./tmp-getstore-$*PID";
-unlink $fname;
+try unlink $fname;
 
 ok(
     LWP::Simple.getstore('http://www.opera.com', $fname),
