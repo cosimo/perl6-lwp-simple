@@ -1,7 +1,7 @@
 #
 # Test the parse_url() method
 #
- 
+
 use v6;
 use Test;
 
