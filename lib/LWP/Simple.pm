@@ -153,7 +153,8 @@ method make_request (
 
     $sock.send($req_str);
 
-    my $resp = $sock.recv();
+    # a bit crude w respect to err handling and blocking but ok for now
+    my $resp = ~ grep { .bytes || last }, $sock.recv() xx *;
     $sock.close();
 
     my ($status, $resp_headers, $resp_content) = self.parse_response($resp);
