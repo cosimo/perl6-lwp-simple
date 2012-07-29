@@ -154,7 +154,9 @@ method make_request (
     $sock.send($req_str);
 
     # a bit crude w respect to err handling and blocking but ok for now
-    my $resp = ~ gather for $sock.recv() xx * { .bytes ?? take $_ !! last };
+    my $resp = join '', gather loop {
+        my $s = $sock.recv; last unless $s.chars; take $s
+    };
     $sock.close();
 
     my ($status, $resp_headers, $resp_content) = self.parse_response($resp);
