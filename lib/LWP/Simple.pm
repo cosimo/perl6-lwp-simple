@@ -172,7 +172,7 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
                 return True, $content;
             }
 
-            # not sure if < or <=
+            # not sure if < or <= - pretty sure it's <
             if $line_end_pos + $chunk_len + 4 < $b.bytes {
                 # say 'inner chunk';
                 $content ~= $b.subbuf($line_end_pos +2, $chunk_len);
