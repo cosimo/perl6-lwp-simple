@@ -12,6 +12,7 @@ our $VERSION = '0.08';
 enum RequestType <GET POST>;
 
 has Str $.default_encoding = 'utf-8';
+our $.class_default_encoding = 'utf-8';
 
 my Buf constant $crlf = Buf.new(13, 10);
 my Buf constant $http_header_end_marker = Buf.new(13, 10, 13, 10);
@@ -74,34 +75,55 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
     my ($status, $resp_headers, $resp_content) =
         self.make_request($rt, $hostname, $port, $path, %headers, $content);
 
-    # Follow redirects. Shall we?
-    if $status ~~ m/ 30 <[12]> / {
+    given $status {
 
-        my %resp_headers = $resp_headers.hash;
-        my $new_url = %resp_headers<Location>;
-        if ! $new_url {
-            say "Redirect $status without a new URL?";
-            return;
+        when / 30 <[12]> / {
+            my %resp_headers = $resp_headers.hash;
+            my $new_url = %resp_headers<Location>;
+            if ! $new_url {
+                die "Redirect $status without a new URL?";
+            }
+
+            # Watch out for too many redirects.
+            # Need to find a way to store a class member
+            #if $redirects++ > 10 {
+            #    say "Too many redirects!";
+            #    return;
+            #}
+
+            return self.request_shell($rt, $new_url, %headers, $content);
         }
 
-        # Watch out for too many redirects.
-        # Need to find a way to store a class member
-        #if $redirects++ > 10 {
-        #    say "Too many redirects!";
-        #    return;
-        #}
+        when /200/ {
+            # should be fancier about charset decoding application - someday
+            if  $resp_headers<Content-Type> &&
+                $resp_headers<Content-Type> ~~
+                    /   $<media-type>=[<-[/;]>+]
+                        [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
+                (   $<media-type> eq 'text' ||
+                    (   $<media-type> eq 'application ' &&
+                        $<media-subtype> ~~ /[ ecma | java ]script/
+                    )
+                )
+            {
+                my $charset = 
+                    ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
+                $charset = $charset ?? $charset.Str !!
+                    self ?? $.default_encoding !! $.class_default_encoding;
+                return $resp_content.decode($charset);
+            }
+            else {
+                return $resp_content;
+            }
+            
+        }
 
-        return self.request_shell($rt, $new_url, %headers, $content);
+        # Response failed
+        default {
+            return;
+        }
     }
 
-    # Response successful. Return the content as a scalar
-    if $status ~~ m/200/ {
-        my $page_content = $resp_content.join("\n");
-        return $page_content;
-    }
-
-    # Response failed
-    return;
 }
 
 # In-place removal of chunked transfer markers
@@ -255,11 +277,7 @@ method make_request (
 
     $sock.close();
 
-    # look for nicer way to code this
-    my $charset = ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
-    $charset = $charset ?? $charset.Str !! $.default_encoding;
-
-    return ($status, $resp_headers, $resp_content.decode($charset));
+    return ($status, $resp_headers, $resp_content);
 }
 
 method parse_response (Buf $resp) {
@@ -293,7 +311,8 @@ method parse_response (Buf $resp) {
 }
 
 method getprint (Str $url) {
-    say self.get($url);
+    my $out = self.get($url);
+    if $out.isa('Buf') { $*OUT.write($out) } else { say $out }
 }
 
 method getstore (Str $url, Str $filename) {
@@ -305,10 +324,14 @@ method getstore (Str $url, Str $filename) {
     }
 
     my $fh = open($filename, :bin, :w);
-    my $ok = $fh.print($content);
-    $fh.close; 
+    if $content.isa('Buf') {
+        $fh.write($content)
+    }
+    else {
+        $fh.print($content)
+    }
 
-    return $ok;
+    $fh.close; 
 }
 
 method parse_url (Str $url) {
