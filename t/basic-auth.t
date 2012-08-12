@@ -18,9 +18,6 @@ is(@url[3], '/p6-lwp-simple/basic-auth/', 'Path extracted correctly');
 is(@url[4]<user>, 'ron', 'Basic auth info extracted correctly: user');
 is(@url[4]<password>, 'Camelia',  'Basic auth info extracted correctly: pass');
 is(@url[4]<host>, 'www.software-path.com',  'Basic auth info extracted correctly: hostname');
-# my ($auth_u, $auth_p, $auth_h)= LWP::Simple.has_basic_auth(@url[1]);
-# ok($auth_h eq 'www.software-path.com' && $auth_u eq 'ron' && $auth_p eq 'Camelia',
-#     'test deprecated has_basic_auth method');
 
 # Encode test
 is(

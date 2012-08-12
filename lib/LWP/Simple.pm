@@ -23,20 +23,6 @@ method base64encode ($user, $pass) {
     return $encoded;
 }
 
-method has_basic_auth (Str $host) {
-
-    # ^ <username> : <password> @ <hostname> $
-    warn "has_basic_auth deprecated - not in p5 LWP simple and now returned by parse_url";
-    if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
-        my $user = $0.Str;
-        my $pass = $1.Str;
-        my $host = $2.Str;		
-        return $user, $pass, $host;
-    }
-
-    return;
-}
-
 method get (Str $url) {
     self.request_shell(RequestType::GET, $url)
 }
@@ -101,8 +87,8 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
                     /   $<media-type>=[<-[/;]>+]
                         [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
                 (   $<media-type> eq 'text' ||
-                    (   $<media-type> eq 'application ' &&
-                        $<media-subtype> ~~ /[ ecma | java ]script/
+                    (   $<media-type> eq 'application' &&
+                        $<media-subtype> ~~ /[ ecma | java ]script | json/
                     )
                 )
             {
@@ -126,58 +112,21 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
 }
 
-# In-place removal of chunked transfer markers
-method decode_chunked (@content) {
-    my $pos = 0;
-
-    while @content {
-
-        # Chunk start: length as hex word
-        my $length = splice(@content, $pos, 1);
-
-        # Chunk length is hex and could contain
-        # chunk-extensions (RFC2616, 3.6.1). Ex.: '5f32; xxx=...'
-        if $length ~~ m/^ \w+ / {
-            $length = :16(~$/);
-        } else {
-            last;
-        }
-
-        # Continue reading for '$length' bytes
-        while $length > 0 && @content.exists($pos) {
-            my $line = @content[$pos];
-            $length -= $line.bytes;    # .bytes, not .chars
-            $length--;                 # <CR>
-            $pos++;
-        }
-
-        # Stop decoding when a zero is encountered, RFC2616 again
-        if $length == 0 {
-            # Truncate document here
-            splice(@content, $pos);
-            last;
-        }
-
-    }
-
-    return @content;
-}
-
-# bug - is copy should be is rw
 method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
     my Int $line_end_pos = 0;
     my Int $chunk_len = 0;
     my Int $chunk_start = 0;
     my Buf $content .= new();
 
-    while ($line_end_pos + 4 <= $b.bytes) {
-        while ( $line_end_pos < $b.bytes  &&
+    # smallest valid chunked line is 0CRLFCRLF (ascii or other 8bit like EBCDIC)
+    while ($line_end_pos + 5 <= $b.bytes) {
+        while ( $line_end_pos +4 <= $b.bytes  &&
                 $b.subbuf($line_end_pos, 2) ne $crlf
         ) {
             $line_end_pos++
         }
 #       say "got here x0x pos ", $line_end_pos, ' bytes ', $b.bytes, ' start ', $chunk_start, ' some data ', $b.subbuf($chunk_start, $line_end_pos +2 - $chunk_start).decode('ascii');
-        if  $line_end_pos +2 <= $b.bytes &&
+        if  $line_end_pos +4 <= $b.bytes &&
             $b.subbuf(
                 $chunk_start, $line_end_pos + 2 - $chunk_start
             ).decode('ascii') ~~ /^(<.xdigit>+)[";"|"\r\n"]/ 
@@ -186,7 +135,7 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
             # deal with case of chunk_len is 0
 
             $chunk_len = :16($/[0].Str);
-            # say 'got here ', $/[0].Str;
+#            say 'got chunk len ', $/[0].Str;
 
             # test if at end of buf??
             if $chunk_len == 0 {
@@ -194,14 +143,14 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
                 return True, $content;
             }
 
-            # not sure if < or <= - pretty sure it's <
-            if $line_end_pos + $chunk_len + 4 < $b.bytes {
-                # say 'inner chunk';
+            # think 1CRLFxCRLF
+            if $line_end_pos + $chunk_len + 4 <= $b.bytes {
+#                say 'inner chunk';
                 $content ~= $b.subbuf($line_end_pos +2, $chunk_len);
                 $line_end_pos = $chunk_start = $line_end_pos + $chunk_len +4;
             }
             else {
-                # say 'last chunk';
+#                say 'last chunk';
                 # remaining chunk part len is chunk_len with CRLF
                 # minus the length of the chunk piece at end of buffer
                 my $last_chunk_end_len = 
@@ -218,14 +167,14 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
             }
         }
         else {
-            # say 'bytes ', $b.bytes, ' start ', $chunk_start, ' data ', $b.subbuf($chunk_start).decode('ascii');
+#            say 'extend bytes ', $b.bytes, ' start ', $chunk_start, ' data ', $b.subbuf($chunk_start).decode('ascii');
             # maybe odd case of buffer has just part of header at end
             $b ~= $sock.read(20);
         }
     }
 
-    # say join ' ', $b[0 .. 100];
-    # say $b.subbuf(0, 100).decode('utf-8');
+#    say join ' ', $b[0 .. 100];
+#    say $b.subbuf(0, 100).decode('utf-8');
     die "Could not parse chunk header";
 }
 
