@@ -113,9 +113,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 }
 
 method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
-    my Int $line_end_pos = 0;
-    my Int $chunk_len = 0;
-    my Int $chunk_start = 0;
+    my Int ($line_end_pos, $chunk_len, $chunk_start) = (0) xx 3;
     my Buf $content .= new();
 
     # smallest valid chunked line is 0CRLFCRLF (ascii or other 8bit like EBCDIC)
