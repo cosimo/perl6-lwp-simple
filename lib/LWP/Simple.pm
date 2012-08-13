@@ -5,9 +5,9 @@ use v6;
 use MIME::Base64;
 use URI;
 
-class LWP::Simple:auth<cosimo>:ver<0.08>;
+class LWP::Simple:auth<cosimo>:ver<0.085>;
 
-our $VERSION = '0.08';
+our $VERSION = '0.085';
 
 enum RequestType <GET POST>;
 
