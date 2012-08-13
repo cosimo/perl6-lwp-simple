@@ -11,7 +11,7 @@ ok(
     'Got latin-1 page'
 );
 
-$html = LWP::Simple.get('http://www.w3.org/2006/11/mwbp-tests/test-encoding-8.html');
+$html = LWP::Simple.get('http://www.w3.org/2006/11/mwbp-tests/test-encoding-3.html');
 $find_char = Buf.new(0xC3, 0xA9).decode('utf-8');
 ok(
     $html.match('</html>') && $html.match($find_char),
