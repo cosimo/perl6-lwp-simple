@@ -112,7 +112,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
 }
 
-method parse_chunks(Buf $b is copy, IO::Socket::INET $sock) {
+method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
     my Int ($line_end_pos, $chunk_len, $chunk_start) = (0) xx 3;
     my Buf $content .= new();
 
