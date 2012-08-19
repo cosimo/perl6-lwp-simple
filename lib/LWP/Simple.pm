@@ -14,8 +14,9 @@ enum RequestType <GET POST>;
 has Str $.default_encoding = 'utf-8';
 our $.class_default_encoding = 'utf-8';
 
-my Buf constant $crlf = Buf.new(13, 10);
-my Buf constant $http_header_end_marker = Buf.new(13, 10, 13, 10);
+# these were intended to be constant but that hit pre-compilation issue
+my Buf $crlf = Buf.new(13, 10);
+my Buf $http_header_end_marker = Buf.new(13, 10, 13, 10);
 
 method base64encode ($user, $pass) {
     my MIME::Base64 $mime .= new();
