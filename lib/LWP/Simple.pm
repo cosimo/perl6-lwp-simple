@@ -5,30 +5,23 @@ use v6;
 use MIME::Base64;
 use URI;
 
-class LWP::Simple:auth<cosimo>:ver<0.08>;
+class LWP::Simple:auth<cosimo>:ver<0.085>;
 
-our $VERSION = '0.08';
+our $VERSION = '0.085';
 
 enum RequestType <GET POST>;
 
+has Str $.default_encoding = 'utf-8';
+our $.class_default_encoding = 'utf-8';
+
+# these were intended to be constant but that hit pre-compilation issue
+my Buf $crlf = Buf.new(13, 10);
+my Buf $http_header_end_marker = Buf.new(13, 10, 13, 10);
+
 method base64encode ($user, $pass) {
-    my $mime = MIME::Base64.new();
+    my MIME::Base64 $mime .= new();
     my $encoded = $mime.encode_base64($user ~ ':' ~ $pass);
     return $encoded;
-}
-
-method has_basic_auth (Str $host) {
-
-    # ^ <username> : <password> @ <hostname> $
-    warn "has_basic_auth deprecated - not in p5 LWP simple and now returned by parse_url";
-    if $host ~~ /^ (\w+) \: (\w+) \@ (\N+) $/ {
-        my $user = $0.Str;
-        my $pass = $1.Str;
-        my $host = $2.Str;		
-        return $user, $pass, $host;
-    }
-
-    return;
 }
 
 method get (Str $url) {
@@ -63,77 +56,125 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
         # as recommended in RFC2616 section 14.3.
         # Note: Empty content is also a content,
         # header value equals to zero is valid.
-        %headers{'Content-Length'} = $content.bytes;
+        %headers{'Content-Length'} = $content.encode.bytes;
     }
 
     my ($status, $resp_headers, $resp_content) =
         self.make_request($rt, $hostname, $port, $path, %headers, $content);
 
-    # Follow redirects. Shall we?
-    if $status ~~ m/ 30 <[12]> / {
+    given $status {
 
-        my %resp_headers = $resp_headers.hash;
-        my $new_url = %resp_headers<Location>;
-        if ! $new_url {
-            say "Redirect $status without a new URL?";
+        when / 30 <[12]> / {
+            my %resp_headers = $resp_headers.hash;
+            my $new_url = %resp_headers<Location>;
+            if ! $new_url {
+                die "Redirect $status without a new URL?";
+            }
+
+            # Watch out for too many redirects.
+            # Need to find a way to store a class member
+            #if $redirects++ > 10 {
+            #    say "Too many redirects!";
+            #    return;
+            #}
+
+            return self.request_shell($rt, $new_url, %headers, $content);
+        }
+
+        when /200/ {
+            # should be fancier about charset decoding application - someday
+            if  $resp_headers<Content-Type> &&
+                $resp_headers<Content-Type> ~~
+                    /   $<media-type>=[<-[/;]>+]
+                        [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
+                (   $<media-type> eq 'text' ||
+                    (   $<media-type> eq 'application' &&
+                        $<media-subtype> ~~ /[ ecma | java ]script | json/
+                    )
+                )
+            {
+                my $charset = 
+                    ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
+                $charset = $charset ?? $charset.Str !!
+                    self ?? $.default_encoding !! $.class_default_encoding;
+                return $resp_content.decode($charset);
+            }
+            else {
+                return $resp_content;
+            }
+            
+        }
+
+        # Response failed
+        default {
             return;
         }
-
-        # Watch out for too many redirects.
-        # Need to find a way to store a class member
-        #if $redirects++ > 10 {
-        #    say "Too many redirects!";
-        #    return;
-        #}
-
-        return self.request_shell($rt, $new_url, %headers, $content);
     }
 
-    # Response successful. Return the content as a scalar
-    if $status ~~ m/200/ {
-        my $page_content = $resp_content.join("\n");
-        return $page_content;
-    }
-
-    # Response failed
-    return;
 }
 
-# In-place removal of chunked transfer markers
-method decode_chunked (@content) {
-    my $pos = 0;
+method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
+    my Int ($line_end_pos, $chunk_len, $chunk_start) = (0) xx 3;
+    my Buf $content .= new();
 
-    while @content {
-
-        # Chunk start: length as hex word
-        my $length = splice(@content, $pos, 1);
-
-        # Chunk length is hex and could contain
-        # chunk-extensions (RFC2616, 3.6.1). Ex.: '5f32; xxx=...'
-        if $length ~~ m/^ \w+ / {
-            $length = :16(~$/);
-        } else {
-            last;
+    # smallest valid chunked line is 0CRLFCRLF (ascii or other 8bit like EBCDIC)
+    while ($line_end_pos + 5 <= $b.bytes) {
+        while ( $line_end_pos +4 <= $b.bytes  &&
+                $b.subbuf($line_end_pos, 2) ne $crlf
+        ) {
+            $line_end_pos++
         }
+#       say "got here x0x pos ", $line_end_pos, ' bytes ', $b.bytes, ' start ', $chunk_start, ' some data ', $b.subbuf($chunk_start, $line_end_pos +2 - $chunk_start).decode('ascii');
+        if  $line_end_pos +4 <= $b.bytes &&
+            $b.subbuf(
+                $chunk_start, $line_end_pos + 2 - $chunk_start
+            ).decode('ascii') ~~ /^(<.xdigit>+)[";"|"\r\n"]/ 
+        {
 
-        # Continue reading for '$length' bytes
-        while $length > 0 && @content.exists($pos) {
-            my $line = @content[$pos];
-            $length -= $line.bytes;    # .bytes, not .chars
-            $length--;                 # <CR>
-            $pos++;
+            # deal with case of chunk_len is 0
+
+            $chunk_len = :16($/[0].Str);
+#            say 'got chunk len ', $/[0].Str;
+
+            # test if at end of buf??
+            if $chunk_len == 0 {
+                # this is a "normal" exit from the routine
+                return True, $content;
+            }
+
+            # think 1CRLFxCRLF
+            if $line_end_pos + $chunk_len + 4 <= $b.bytes {
+#                say 'inner chunk';
+                $content ~= $b.subbuf($line_end_pos +2, $chunk_len);
+                $line_end_pos = $chunk_start = $line_end_pos + $chunk_len +4;
+            }
+            else {
+#                say 'last chunk';
+                # remaining chunk part len is chunk_len with CRLF
+                # minus the length of the chunk piece at end of buffer
+                my $last_chunk_end_len = 
+                    $chunk_len +2 - ($b.bytes - $line_end_pos -2);
+                $content ~= $b.subbuf($line_end_pos +2);
+                if $last_chunk_end_len > 2  {
+                    $content ~= $sock.read($last_chunk_end_len -2);
+                }
+                # clean up CRLF after chunk
+                $sock.read(min($last_chunk_end_len, 2));
+
+                # this is a` "normal" exit from the routine
+                return False, $content;
+            }
         }
-
-        # Stop decoding when a zero is encountered, RFC2616 again
-        if $length == 0 {
-            # Truncate document here
-            splice(@content, $pos);
-            last;
+        else {
+#            say 'extend bytes ', $b.bytes, ' start ', $chunk_start, ' data ', $b.subbuf($chunk_start).decode('ascii');
+            # maybe odd case of buffer has just part of header at end
+            $b ~= $sock.read(20);
         }
-
     }
 
-    return @content;
+#    say join ' ', $b[0 .. 100];
+#    say $b.subbuf(0, 100).decode('utf-8');
+    die "Could not parse chunk header";
 }
 
 method make_request (
@@ -142,8 +183,8 @@ method make_request (
 
     my $headers = self.stringify_headers(%headers);
 
-    my $sock = IO::Socket::INET.new(:$host, :$port);
-    my $req_str = $rt.Stringy ~ " {$path} HTTP/1.1\r\n"
+    my IO::Socket::INET $sock .= new(:$host, :$port);
+    my Str $req_str = $rt.Stringy ~ " {$path} HTTP/1.1\r\n"
         ~ $headers
         ~ "\r\n";
 
@@ -153,40 +194,73 @@ method make_request (
 
     $sock.send($req_str);
 
-    # a bit crude w respect to err handling and blocking but ok for now
-    my $resp = join '', gather loop {
-        my $s = $sock.recv; last unless $s.chars; take $s
-    };
-    $sock.close();
+    my Buf $resp = $sock.read(2 * 1024);
 
     my ($status, $resp_headers, $resp_content) = self.parse_response($resp);
+
+
+    if (    $resp_headers<Content-Length>   &&
+            $resp_content.bytes < $resp_headers<Content-Length>
+    ) {
+        $resp_content ~= $sock.read(
+            $resp_headers<Content-Length> - $resp_content.bytes
+        );
+    }
+
+    if (($resp_headers<Transfer-Encoding> || '') eq 'chunked') {
+        my Bool $is_last_chunk;
+        my Buf $resp_content_chunk;
+
+        ($is_last_chunk, $resp_content) =
+            self.parse_chunks($resp_content, $sock);
+        while (not $is_last_chunk) {
+            ($is_last_chunk, $resp_content_chunk) =
+                self.parse_chunks(
+                    my Buf $next_chunk_start = $sock.read(1024),
+                    $sock
+            );
+            $resp_content ~= $resp_content_chunk;
+        }
+    }
+
+    $sock.close();
 
     return ($status, $resp_headers, $resp_content);
 }
 
-method parse_response (Str $resp) {
+method parse_response (Buf $resp) {
 
     my %header;
-    my @content = $resp.split(/\n/);
 
-    my $status_line = @content.shift;
-
-    while @content {
-        my $line = @content.shift;
-        last if $line eq '';
-        my ($name, $value) = $line.split(': ');
-        %header{$name} = $value;
+    my Int $header_end_pos = 0;
+    while ( $header_end_pos < $resp.bytes &&
+            $http_header_end_marker ne $resp.subbuf($header_end_pos, 4)  ) {
+        $header_end_pos++;
     }
 
-    if %header.exists('Transfer-Encoding') && %header<Transfer-Encoding> ~~ m/:i chunked/ {
-        @content = self.decode_chunked(@content);
+    if ($header_end_pos < $resp.bytes) {
+        my @header_lines = $resp.subbuf(
+            0, $header_end_pos
+        ).decode('ascii').split(/\r\n/);
+        my Str $status_line = @header_lines.shift;
+
+        for @header_lines {
+            my ($name, $value) = .split(': ');
+            %header{$name} = $value;
+        }
+        return $status_line, %header.item, $resp.subbuf($header_end_pos +4).item;
     }
 
-    return $status_line, %header.item, @content.item;
+    die "could not parse headers";
+#    if %header.exists('Transfer-Encoding') && %header<Transfer-Encoding> ~~ m/:i chunked/ {
+#        @content = self.decode_chunked(@content);
+#    }
+
 }
 
 method getprint (Str $url) {
-    say self.get($url);
+    my $out = self.get($url);
+    if $out.isa('Buf') { $*OUT.write($out) } else { say $out }
 }
 
 method getstore (Str $url, Str $filename) {
@@ -198,14 +272,18 @@ method getstore (Str $url, Str $filename) {
     }
 
     my $fh = open($filename, :bin, :w);
-    my $ok = $fh.print($content);
-    $fh.close; 
+    if $content.isa('Buf') {
+        $fh.write($content)
+    }
+    else {
+        $fh.print($content)
+    }
 
-    return $ok;
+    $fh.close; 
 }
 
 method parse_url (Str $url) {
-    my $u = URI.new($url);
+    my URI $u .= new($url);
     my $path = $u.path_query;
     
     my $user_info = $u.grammar.parse_result<URI_reference><URI><hier_part><authority><userinfo>;
@@ -224,7 +302,7 @@ method parse_url (Str $url) {
 }
 
 method stringify_headers (%headers) {
-    my $str = '';
+    my Str $str = '';
     for sort %headers.keys {
         $str ~= $_ ~ ': ' ~ %headers{$_} ~ "\r\n";
     }

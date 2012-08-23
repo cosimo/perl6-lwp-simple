@@ -17,10 +17,9 @@ $html = LWP::Simple.get(
 );
 ok(
     $html.match('That also works with the Z operator:') &&
-        $html.match('</html>') && $html.bytes > 12_000,
+        $html.match('</html>') && $html.chars > 12_000,
     'make sure we pulled down whole document for some substantial size'
 );
 #diag("Content\n" ~ $html);
 
 done;
-
