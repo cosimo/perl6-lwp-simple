@@ -22,5 +22,3 @@ Current status
 As of 2011-04-22, runs with all recent rakudo builds.
 It correctly follows redirects, but no infinite redirects
 detection yet.
-
-A known problem is that it corrupts binary files downloads.
