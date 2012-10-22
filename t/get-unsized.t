@@ -10,7 +10,7 @@ my $html = LWP::Simple.get('http://www.rosettacode.org/wiki/Rosetta_Code');
 ok(
     $html.match('About Rosetta Code') &&
         $html.match('</html>') && $html.chars > 12_000,
-    'make sure we pulled down whole document for some substantial size'
+    'make sure we pulled whole document without, we believe, sizing from server'
 );
 
 done;
