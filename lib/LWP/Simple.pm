@@ -17,6 +17,7 @@ our $.class_default_encoding = 'utf-8';
 # these were intended to be constant but that hit pre-compilation issue
 my Buf $crlf = Buf.new(13, 10);
 my Buf $http_header_end_marker = Buf.new(13, 10, 13, 10);
+my Int constant $default_stream_read_len = 2 * 1024;
 
 method base64encode ($user, $pass) {
     my MIME::Base64 $mime .= new();
@@ -194,18 +195,10 @@ method make_request (
 
     $sock.send($req_str);
 
-    my Buf $resp = $sock.read(2 * 1024);
+    my Buf $resp = $sock.read($default_stream_read_len);
 
     my ($status, $resp_headers, $resp_content) = self.parse_response($resp);
 
-
-    if (    $resp_headers<Content-Length>   &&
-            $resp_content.bytes < $resp_headers<Content-Length>
-    ) {
-        $resp_content ~= $sock.read(
-            $resp_headers<Content-Length> - $resp_content.bytes
-        );
-    }
 
     if (($resp_headers<Transfer-Encoding> || '') eq 'chunked') {
         my Bool $is_last_chunk;
@@ -220,6 +213,19 @@ method make_request (
                     $sock
             );
             $resp_content ~= $resp_content_chunk;
+        }
+    }
+    elsif ( $resp_headers<Content-Length>   &&
+            $resp_content.bytes < $resp_headers<Content-Length>
+    ) {
+        $resp_content ~= $sock.read(
+            $resp_headers<Content-Length> - $resp_content.bytes
+        );
+    }
+    else { # a bit hacky for now but should be ok
+        while ($resp.bytes > 0) {
+            $resp = $sock.read($default_stream_read_len);
+            $resp_content ~= $resp;
         }
     }
 
