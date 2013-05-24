@@ -301,8 +301,8 @@ method parse_url (Str $url) {
         $path eq '' ?? '/' !! $path,
         $user_info ?? {
             host => $u.host,
-            user => ~ $user_info[0]<likely_userinfo_component>[0],
-            password => ~ $user_info[0]<likely_userinfo_component>[1]
+            user => ~ $user_info<likely_userinfo_component>[0],
+            password => ~ $user_info<likely_userinfo_component>[1]
         } !! Nil
     );    
 }
