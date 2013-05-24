@@ -5,7 +5,7 @@ use LWP::Simple;
 
 plan 4;
 
-my $fname = "./tmp-getstore-$*PID";
+my $fname = IO::Spec.catdir($*TMPDIR, "./tmp-getstore-$*PID");
 try unlink $fname;
 
 ok(
