@@ -94,7 +94,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
                     )
                 )
             {
-                my $charset = 
+                my $charset =
                     ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
                 $charset = $charset ?? $charset.Str !!
                     self ?? $.default_encoding !! $.class_default_encoding;
@@ -103,7 +103,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
             else {
                 return $resp_content;
             }
-            
+
         }
 
         # Response failed
@@ -129,7 +129,7 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
         if  $line_end_pos +4 <= $b.bytes &&
             $b.subbuf(
                 $chunk_start, $line_end_pos + 2 - $chunk_start
-            ).decode('ascii') ~~ /^(<.xdigit>+)[";"|"\r\n"]/ 
+            ).decode('ascii') ~~ /^(<.xdigit>+)[";"|"\r\n"]/
         {
 
             # deal with case of chunk_len is 0
@@ -153,7 +153,7 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
 #                say 'last chunk';
                 # remaining chunk part len is chunk_len with CRLF
                 # minus the length of the chunk piece at end of buffer
-                my $last_chunk_end_len = 
+                my $last_chunk_end_len =
                     $chunk_len +2 - ($b.bytes - $line_end_pos -2);
                 $content ~= $b.subbuf($line_end_pos +2);
                 if $last_chunk_end_len > 2  {
@@ -181,7 +181,6 @@ method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
 method make_request (
     RequestType $rt, $host, $port as Int, $path, %headers, $content?
 ) {
-
     my $headers = self.stringify_headers(%headers);
 
     my IO::Socket::INET $sock .= new(:$host, :$port);
@@ -235,7 +234,6 @@ method make_request (
 }
 
 method parse_response (Buf $resp) {
-
     my %header;
 
     my Int $header_end_pos = 0;
@@ -257,11 +255,10 @@ method parse_response (Buf $resp) {
         return $status_line, %header.item, $resp.subbuf($header_end_pos +4).item;
     }
 
-    die "could not parse headers";
-#    if %header.exists('Transfer-Encoding') && %header<Transfer-Encoding> ~~ m/:i chunked/ {
-#        @content = self.decode_chunked(@content);
-#    }
+    return "", %header.item, $resp.subbuf(0).item
+    	if $header_end_pos == $resp.elems;
 
+    die "could not parse headers";
 }
 
 method getprint (Str $url) {
@@ -285,26 +282,26 @@ method getstore (Str $url, Str $filename) {
         $fh.print($content)
     }
 
-    $fh.close; 
+    $fh.close;
 }
 
 method parse_url (Str $url) {
     my URI $u .= new($url);
     my $path = $u.path_query;
-    
+
     my $user_info = $u.grammar.parse_result<URI_reference><URI><hier_part><authority><userinfo>;
-    
+
     return (
-        $u.scheme, 
-        $user_info ?? "{$user_info}@{$u.host}" !! $u.host, 
-        $u.port, 
+        $u.scheme,
+        $user_info ?? "{$user_info}@{$u.host}" !! $u.host,
+        $u.port,
         $path eq '' ?? '/' !! $path,
         $user_info ?? {
             host => $u.host,
             user => ~ $user_info<likely_userinfo_component>[0],
             password => ~ $user_info<likely_userinfo_component>[1]
         } !! Nil
-    );    
+    );
 }
 
 method stringify_headers (%headers) {
