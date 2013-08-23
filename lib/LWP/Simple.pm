@@ -114,9 +114,9 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
 }
 
-method parse_chunks(Buf $b is rw, IO::Socket::INET $sock) {
+method parse_chunks(Blob $b is rw, IO::Socket::INET $sock) {
     my Int ($line_end_pos, $chunk_len, $chunk_start) = (0) xx 3;
-    my Buf $content .= new();
+    my Blob $content = Blob.new();
 
     # smallest valid chunked line is 0CRLFCRLF (ascii or other 8bit like EBCDIC)
     while ($line_end_pos + 5 <= $b.bytes) {
@@ -195,21 +195,21 @@ method make_request (
 
     $sock.send($req_str);
 
-    my Buf $resp = $sock.read($default_stream_read_len);
+    my Blob $resp = $sock.read($default_stream_read_len);
 
     my ($status, $resp_headers, $resp_content) = self.parse_response($resp);
 
 
     if (($resp_headers<Transfer-Encoding> || '') eq 'chunked') {
         my Bool $is_last_chunk;
-        my Buf $resp_content_chunk;
+        my Blob $resp_content_chunk;
 
         ($is_last_chunk, $resp_content) =
             self.parse_chunks($resp_content, $sock);
         while (not $is_last_chunk) {
             ($is_last_chunk, $resp_content_chunk) =
                 self.parse_chunks(
-                    my Buf $next_chunk_start = $sock.read(1024),
+                    my Blob $next_chunk_start = $sock.read(1024),
                     $sock
             );
             $resp_content ~= $resp_content_chunk;
@@ -234,7 +234,7 @@ method make_request (
     return ($status, $resp_headers, $resp_content);
 }
 
-method parse_response (Buf $resp) {
+method parse_response (Blob $resp) {
 
     my %header;
 
@@ -266,7 +266,7 @@ method parse_response (Buf $resp) {
 
 method getprint (Str $url) {
     my $out = self.get($url);
-    if $out.isa('Buf') { $*OUT.write($out) } else { say $out }
+    if $out ~~ Buf { $*OUT.write($out) } else { say $out }
 }
 
 method getstore (Str $url, Str $filename) {
@@ -278,7 +278,7 @@ method getstore (Str $url, Str $filename) {
     }
 
     my $fh = open($filename, :bin, :w);
-    if $content.isa('Buf') {
+    if $content ~~ Buf {
         $fh.write($content)
     }
     else {
