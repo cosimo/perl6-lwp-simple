@@ -13,10 +13,10 @@ ok(
 
 # a page over 64K would be ideal but a bit slow and not really needed yet
 $html = LWP::Simple.get(
-    'http://wiki.perl6.org/Mostly%20Harmless%20Docs/Operators'
+    'http://doc.perl6.org/#Language+Documentation'
 );
 ok(
-    $html.match('That also works with the Z operator:') &&
+    $html.match('X::Attribute::Undeclared') &&
         $html.match('</html>') && $html.chars > 12_000,
     'make sure we pulled down whole document for some substantial size'
 );
