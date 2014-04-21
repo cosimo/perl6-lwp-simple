@@ -148,6 +148,14 @@ method parse_chunks(Blob $b is rw, IO::Socket::INET $sock) {
 #                say 'inner chunk';
                 $content ~= $b.subbuf($line_end_pos +2, $chunk_len);
                 $line_end_pos = $chunk_start = $line_end_pos + $chunk_len +4;
+
+                if $line_end_pos + 5 > $b.bytes {
+                    # we don't even have enough at the end of our buffer to
+                    # have a minimum valid chunk header. Assume this is
+                    # unfortunate coincidence and read at least enough data for
+                    # a minimal chunk header
+                    $b ~= $sock.read(5);
+                }
             }
             else {
 #                say 'last chunk';
