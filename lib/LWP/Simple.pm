@@ -36,6 +36,8 @@ method post (Str $url, %headers = {}, Any $content?) {
 method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
     return unless $url;
+    die "400 URL must be absolute <URL:$url>\n" unless $url ~~ m/^https*\:\/\//;
+    die "501 Protocol scheme 'https' is not supported  <URL:$url>\n" if $url ~~ m/^https\:\/\//; 
 
     my ($scheme, $hostname, $port, $path, $auth) = self.parse_url($url);
 
