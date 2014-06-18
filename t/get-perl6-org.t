@@ -13,7 +13,7 @@ ok(
 
 # a page over 64K would be ideal but a bit slow and not really needed yet
 $html = LWP::Simple.get(
-    'http://doc.perl6.org/#Language+Documentation'
+    'http://doc.perl6.org/type-exceptions.html'
 );
 ok(
     $html.match('X::Attribute::Undeclared') &&
