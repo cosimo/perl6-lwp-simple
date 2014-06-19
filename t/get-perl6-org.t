@@ -17,7 +17,7 @@ $html = LWP::Simple.get(
 );
 ok(
     $html.match('X::Attribute::Undeclared') &&
-        $html.match('</html>') && $html.chars > 12_000,
+        $html.match('</html>'),
     'make sure we pulled down whole document for some substantial size'
 );
 #diag("Content\n" ~ $html);
