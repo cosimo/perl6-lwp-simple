@@ -306,7 +306,7 @@ method parse_url (Str $url) {
     
     return (
         $u.scheme, 
-        $user_info ?? "{$user_info}@{$u.host}" !! $u.host, 
+        $user_info ?? "{$user_info}\@{$u.host}" !! $u.host, 
         $u.port, 
         $path eq '' ?? '/' !! $path,
         $user_info ?? {
