@@ -8,11 +8,15 @@ my %headers = ( 'Content-Type' => 'application/json' );
 my $content = '{"method":"echo","params":["Hello from Perl6"],"id":1}';
 my $html    = LWP::Simple.post($host, %headers, $content);
 
-skip("Unable to connect to test site '$host'", 1) unless $html;
-ok(
-    $html.match('Hello from Perl6'),
-    'call to JSON-RPC service using headers and content params'
-);
+if $html {
+    ok(
+        $html.match('Hello from Perl6'),
+        'call to JSON-RPC service using headers and content params'
+    );
+}
+else {
+    skip("Unable to connect to test site '$host'", 1);
+}
 
 done;
 
