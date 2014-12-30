@@ -7,7 +7,7 @@ use LWP::Simple;
 my $logo = LWP::Simple.get('http://www.perl6.org/camelia-logo.png');
 
 ok(
-    $logo.bytes == 68382 && $logo[ 60_000 ] == 74,
+    $logo.bytes == 57601 && $logo[ 57_600 ] == 130,
     'Fetched Camelia Logo'
 );
 
