@@ -5,7 +5,7 @@ use LWP::Simple;
 
 plan 4;
 
-my $fname = IO::Spec.catdir($*TMPDIR, "./tmp-getstore-$*PID");
+my $fname = $*SPEC.catdir($*TMPDIR, "./tmp-getstore-$*PID");
 try unlink $fname;
 
 ok(
@@ -16,6 +16,6 @@ ok(
 my $fh = open($fname);
 ok($fh, 'Opened file handle written by getstore()');
 
-ok $fh.slurp ~~ /Opera \s+ browser/, 'Found pattern in downloaded file';
+ok $fh.slurp-rest ~~ /Opera \s+ browser/, 'Found pattern in downloaded file';
 
 ok(unlink($fname), 'Delete the temporary file');
