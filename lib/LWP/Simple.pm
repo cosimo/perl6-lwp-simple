@@ -4,12 +4,13 @@
 use v6;
 use MIME::Base64;
 use URI;
+use IO::Socket::SSL;
 
 class LWP::Simple:auth<cosimo>:ver<0.085>;
 
 our $VERSION = '0.085';
 
-enum RequestType <GET POST>;
+enum RequestType <GET POST PUT HEAD>;
 
 has Str $.default_encoding = 'utf-8';
 our $.class_default_encoding = 'utf-8';
@@ -37,7 +38,8 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
     return unless $url;
     die "400 URL must be absolute <URL:$url>\n" unless $url ~~ m/^https*\:\/\//;
-    die "501 Protocol scheme 'https' is not supported  <URL:$url>\n" if $url ~~ m/^https\:\/\//; 
+    my $ssl;
+    $ssl = True if $url ~~ m/^https\:\/\//;
 
     my ($scheme, $hostname, $port, $path, $auth) = self.parse_url($url);
 
@@ -54,7 +56,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
     %headers<Host> = $hostname;
 
-    if ($rt ~~ RequestType::POST && $content.defined) {
+    if ($rt ~~ any(RequestType::POST, RequestType::PUT) && $content.defined) {
         # Attach Content-Length header
         # as recommended in RFC2616 section 14.3.
         # Note: Empty content is also a content,
@@ -63,7 +65,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
     }
 
     my ($status, $resp_headers, $resp_content) =
-        self.make_request($rt, $hostname, $port, $path, %headers, $content);
+        self.make_request($rt, $hostname, $port, $path, %headers, $content, :$ssl);
 
     given $status {
 
@@ -189,12 +191,12 @@ method parse_chunks(Blob $b is rw, IO::Socket::INET $sock) {
 }
 
 method make_request (
-    RequestType $rt, $host, $port as Int, $path, %headers, $content?
+    RequestType $rt, $host, $port as Int, $path, %headers, $content?, :$ssl
 ) {
 
     my $headers = self.stringify_headers(%headers);
 
-    my IO::Socket::INET $sock .= new(:$host, :$port);
+    my $sock = $ssl ?? IO::Socket::SSL.new(:$host, :$port) !! IO::Socket::INET.new(:$host, :$port);
     my Str $req_str = $rt.Stringy ~ " {$path} HTTP/1.1\r\n"
         ~ $headers
         ~ "\r\n";
