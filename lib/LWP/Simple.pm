@@ -118,7 +118,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
 }
 
-method parse_chunks(Blob $b is rw, IO::Socket::INET $sock) {
+method parse_chunks(Blob $b is rw, $sock) {
     my Int ($line_end_pos, $chunk_len, $chunk_start) = (0) xx 3;
     my Blob $content = Blob.new();
 
