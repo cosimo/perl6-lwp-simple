@@ -40,7 +40,7 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
     die "400 URL must be absolute <URL:$url>\n" unless $url ~~ m/^https*\:\/\//;
     my $ssl;
     if $url ~~ m/^https\:\/\// {
-        die "501 Protocol scheme 'https' is not supported unless IO::Socket::SSL is installed <URL:$url>\n" if ::('IO::Socket::SSL') ~~ Failure;
+        die "501 Protocol scheme 'https' is only supported if IO::Socket::SSL is installed <URL:$url>\n" if ::('IO::Socket::SSL') ~~ Failure;
         $ssl = True;
     }
     
