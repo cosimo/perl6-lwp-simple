@@ -3,11 +3,11 @@ use Test;
 
 plan 2;
 
-my $s = IO::Socket::INET.new(:host('72.14.176.61'), :port(80));
+my $s = IO::Socket::INET.new(:host('72.14.179.21'), :port(80));
 ok($s, 'Socket object created');
 
 $s = IO::Socket::INET.new(
-    host => '72.14.176.61',
+    host => '72.14.179.21',
     port => 80,
 );
 ok($s, 'Socket object created');
@@ -19,4 +19,3 @@ ok($s, 'Socket object created');
 #    family => PIO::PF_INET6,
 #);
 #ok($s, 'Socket object to IPv6 address created');
-
