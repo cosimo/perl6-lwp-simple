@@ -10,7 +10,7 @@ class LWP::Simple:auth<cosimo>:ver<0.085>;
 
 our $VERSION = '0.085';
 
-enum RequestType <GET POST PUT HEAD>;
+enum RequestType <GET POST PUT HEAD DELETE>;
 
 has Str $.default_encoding = 'utf-8';
 our $.class_default_encoding = 'utf-8';
@@ -26,12 +26,20 @@ method base64encode ($user, $pass) {
     return $encoded;
 }
 
-method get (Str $url) {
+method get (Str $url, %headers = {}) {
     self.request_shell(RequestType::GET, $url)
+}
+
+method delete (Str $url, %headers = {}) {
+    self.request_shell(RequestType::DELETE, $url)
 }
 
 method post (Str $url, %headers = {}, Any $content?) {
     self.request_shell(RequestType::POST, $url, %headers, $content)
+}
+
+method put (Str $url, %headers = {}, Any $content?) {
+    self.request_shell(RequestType::DELETE, $url, %headers, $content)
 }
 
 method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
