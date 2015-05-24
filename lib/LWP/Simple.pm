@@ -6,7 +6,7 @@ use MIME::Base64;
 use URI;
 try require IO::Socket::SSL;
 
-class LWP::Simple:auth<cosimo>:ver<0.085>;
+unit class LWP::Simple:auth<cosimo>:ver<0.085>;
 
 our $VERSION = '0.085';
 
