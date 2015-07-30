@@ -208,7 +208,7 @@ method make_request (
     # (string context is forced by concatenation)
     $req_str ~= $content if $content.defined;
 
-    $sock.send($req_str);
+    $sock.print($req_str);
 
     my Blob $resp = $sock.read($default_stream_read_len);
 
