@@ -3,6 +3,8 @@ use Test;
 
 use LWP::Simple;
 
+plan 2;
+
 # don't use rakudo.org anymore, it has proven to be rather unreliable :(
 my $html = LWP::Simple.get('http://www.perl6.org');
 
@@ -19,5 +21,3 @@ ok(
     'make sure we pulled down whole document for some substantial size'
 );
 #diag("Content\n" ~ $html);
-
-done;

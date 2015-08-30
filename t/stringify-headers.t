@@ -7,6 +7,8 @@ use Test;
 
 use LWP::Simple;
 
+plan 6;
+
 my @test = (
     { User-Agent => 'Opera/9.80 (WinNT; 6.0) Version/10.60' },
     "User-Agent: Opera/9.80 (WinNT; 6.0) Version/10.60\r\n",
@@ -45,6 +47,4 @@ ok(
     $hdr.match('Accept-Language: en;q=1'),
     'Composite headers are stringified correctly'
 );
-
-done;
 

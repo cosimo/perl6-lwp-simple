@@ -7,6 +7,8 @@ use Test;
 
 use LWP::Simple;
 
+plan 25;
+
 my @test = (
     'Simple URL without path',
         'http://www.rakudo.org',
@@ -46,6 +48,4 @@ for @test -> $test, $url, $results {
 # or IO::Socket::INET.open() fails
 my ($scheme, $host, $port, $path) = LWP::Simple.parse_url('http://localhost:5984/foo/test/');
 isa-ok($port, Int, 'port is returned as a Int, to avoid problems on sock.open()');
-
-done;
 
