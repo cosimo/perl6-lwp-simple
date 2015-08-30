@@ -3,7 +3,7 @@ use Test;
 
 use LWP::Simple;
 
-ok(1, 'LWP::Simple is loaded');
+plan 1;
 
-done;
+ok(1, 'LWP::Simple is loaded');
 
