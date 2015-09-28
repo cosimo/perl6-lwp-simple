@@ -4,11 +4,12 @@
 use v6;
 use MIME::Base64;
 use URI;
+use URI::Escape;
 try require IO::Socket::SSL;
 
-unit class LWP::Simple:auth<cosimo>:ver<0.085>;
+unit class LWP::Simple:auth<cosimo>:ver<0.086>;
 
-our $VERSION = '0.085';
+our $VERSION = '0.086';
 
 enum RequestType <GET POST PUT HEAD>;
 
@@ -306,8 +307,7 @@ method getstore (Str $url, Str $filename) {
 method parse_url (Str $url) {
     my URI $u .= new($url);
     my $path = $u.path_query;
-    
-    my $user_info = $u.grammar.parse_result<URI_reference><URI><hier_part><authority><userinfo>;
+    my $user_info = $u.userinfo;
     
     return (
         $u.scheme, 
@@ -316,8 +316,8 @@ method parse_url (Str $url) {
         $path eq '' ?? '/' !! $path,
         $user_info ?? {
             host => $u.host,
-            user => ~ $user_info<likely_userinfo_component>[0],
-            password => ~ $user_info<likely_userinfo_component>[1]
+            user => uri_unescape($user_info.split(':')[0]),
+            password => uri_unescape($user_info.split(':')[1] || '')
         } !! Nil
     );    
 }

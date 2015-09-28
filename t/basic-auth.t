@@ -7,7 +7,7 @@ use Test;
 
 use LWP::Simple;
 
-plan 8;
+plan 9;
 
 my $basic-auth-url = 'https://ron:Camelia@www.software-path.com/p6-lwp-simple/basic-auth/';
 my @url = LWP::Simple.parse_url($basic-auth-url);
@@ -28,8 +28,7 @@ is(
     'Base64 encoding works'
 );
 
-# # URL seems to have stopped working
-# $basic-auth-url ~~ s/^https/http/;
-# my $html = LWP::Simple.get($basic-auth-url);
-# ok($html.match('protected'), 'Got protected url');
+$basic-auth-url ~~ s/^https/http/;
+my $html = LWP::Simple.get($basic-auth-url);
+ok($html.match('protected'), 'Got protected url');
 
