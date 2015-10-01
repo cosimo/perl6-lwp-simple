@@ -1,8 +1,8 @@
 {
     "name"        : "LWP::Simple",
-    "version"     : "0.08",
+    "version"     : "0.086",
     "description" : "LWP::Simple quick & dirty implementation for Rakudo Perl 6",
-    "depends"     : [ "MIME::Base64", "URI" ],
+    "depends"     : [ "MIME::Base64", "URI", "URI::Escape" ],
     "provides"    : {
         "LWP::Simple" : "lib/LWP/Simple.pm"
     },
