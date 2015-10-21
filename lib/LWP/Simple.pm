@@ -208,10 +208,27 @@ method make_request (
 
     my $headers = self.stringify_headers(%headers);
 
-    my $sock = $ssl ?? ::('IO::Socket::SSL').new(:$host, :$port) !! IO::Socket::INET.new(:$host, :$port);
-    my Str $req_str = $rt.Stringy ~ " {$path} HTTP/1.1\r\n"
+    # TODO https_proxy
+    my ($sock, Str $req_str);
+    if %*ENV<http_proxy> and !$ssl {
+
+        my ($proxy, $proxy-port) = %*ENV<http_proxy>.split('/').[2].split(':');
+
+        $sock = IO::Socket::INET.new(:host($proxy), :port(+($proxy-port)));
+        
+        $req_str = $rt.Stringy ~ " http://{$host}:{$port}{$path} HTTP/1.1\r\n"
         ~ $headers
         ~ "\r\n";
+
+    }
+    else {
+        $sock = $ssl ?? ::('IO::Socket::SSL').new(:$host, :$port) !! IO::Socket::INET.new(:$host, :$port);
+        
+        $req_str = $rt.Stringy ~ " {$path} HTTP/1.1\r\n"
+        ~ $headers
+        ~ "\r\n";
+        
+    }
 
     # attach $content if given
     # (string context is forced by concatenation)
