@@ -98,7 +98,8 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
             return self.request_shell($rt, $new_url, %headers, $content);
         }
 
-        when /200/ {
+        when / 20 <[0..9]> / {
+
             # should be fancier about charset decoding application - someday
             if  $resp_headers<Content-Type> &&
                 $resp_headers<Content-Type> ~~
