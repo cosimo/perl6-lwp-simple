@@ -7,9 +7,9 @@ use URI;
 use URI::Escape;
 try require IO::Socket::SSL;
 
-unit class LWP::Simple:auth<cosimo>:ver<0.086>;
+unit class LWP::Simple:auth<cosimo>:ver<0.090>;
 
-our $VERSION = '0.086';
+our $VERSION = '0.090';
 
 enum RequestType <GET POST PUT HEAD DELETE>;
 
