@@ -146,7 +146,7 @@ method parse_chunks(Blob $b is rw, $sock) {
         if  $line_end_pos +4 <= $b.bytes &&
             $b.subbuf(
                 $chunk_start, $line_end_pos + 2 - $chunk_start
-            ).decode('ascii') ~~ /^(<.xdigit>+)[";"|"\r\n"]/ 
+            ).decode('ascii') ~~ /^(<.xdigit>+)[";"|\r?\n]/ 
         {
 
             # deal with case of chunk_len is 0
