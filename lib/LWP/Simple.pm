@@ -204,7 +204,7 @@ method parse_chunks(Blob $b is rw, $sock) {
 }
 
 method make_request (
-    RequestType $rt, $host, $port as Int, $path, %headers, $content?, :$ssl
+    RequestType $rt, $host, Int() $port, $path, %headers, $content?, :$ssl
 ) {
 
     my $headers = self.stringify_headers(%headers);
