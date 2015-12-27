@@ -14,6 +14,8 @@ our $VERSION = '0.090';
 enum RequestType <GET POST PUT HEAD DELETE>;
 
 has Str $.default_encoding = 'utf-8';
+our $.force_encoding;
+our $.force_no_encode;
 our $.class_default_encoding = 'utf-8';
 
 # these were intended to be constant but that hit pre-compilation issue
@@ -101,7 +103,10 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
         when / 20 <[0..9]> / {
 
             # should be fancier about charset decoding application - someday
-            if  $resp_headers<Content-Type> &&
+            if ($.force_encoding) {
+                return $resp_content.decode($.force_encoding);
+            }
+            elsif (not $.force_no_encode) && $resp_headers<Content-Type> &&
                 $resp_headers<Content-Type> ~~
                     /   $<media-type>=[<-[/;]>+]
                         [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&

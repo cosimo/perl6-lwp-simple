@@ -5,5 +5,7 @@ use LWP::Simple;
 
 my $url = @*ARGS[0] // "http://www.rakudo.org";
 
-LWP::Simple.getprint($url);
+my LWP::Simple $lwp .= new;
+$lwp.force_no_encode = True;
+$lwp.getprint($url);
 
