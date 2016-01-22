@@ -100,27 +100,8 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
         when / 20 <[0..9]> / {
 
-            # should be fancier about charset decoding application - someday
-            if  $resp_headers<Content-Type> &&
-                $resp_headers<Content-Type> ~~
-                    /   $<media-type>=[<-[/;]>+]
-                        [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
-                (   $<media-type> eq 'text' ||
-                    (   $<media-type> eq 'application' &&
-                        $<media-subtype> ~~ /[ ecma | java ]script | json/
-                    )
-                )
-            {
-                my $charset = 
-                    ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
-                $charset = $charset ?? $charset.Str !!
-                    self ?? $.default_encoding !! $.class_default_encoding;
-                return $resp_content.decode($charset);
-            }
-            else {
-                return $resp_content;
-            }
-            
+            return self!decode-response( :$resp_headers, :$resp_content );
+
         }
 
         # Response failed
@@ -129,6 +110,29 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
         }
     }
 
+}
+
+method !decode-response( :$resp_headers, :$resp_content ) {
+    # should be fancier about charset decoding application - someday
+    if  $resp_headers<Content-Type> &&
+        $resp_headers<Content-Type> ~~
+            /   $<media-type>=[<-[/;]>+]
+                [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
+        (   $<media-type> eq 'text' ||
+            (   $<media-type> eq 'application' &&
+                $<media-subtype> ~~ /[ ecma | java ]script | json/
+            )
+        )
+    {
+        my $charset =
+            ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
+        $charset = $charset ?? $charset.Str !!
+            self ?? $.default_encoding !! $.class_default_encoding;
+        return $resp_content.decode($charset);
+    }
+    else {
+        return $resp_content;
+    }
 }
 
 method parse_chunks(Blob $b is rw, $sock) {
