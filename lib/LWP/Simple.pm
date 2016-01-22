@@ -5,6 +5,7 @@ use v6;
 use MIME::Base64;
 use URI;
 use URI::Escape;
+use X::LWP::Simple::Response;
 try require IO::Socket::SSL;
 
 unit class LWP::Simple:auth<cosimo>:ver<0.090>;
@@ -81,6 +82,14 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
     given $status {
 
+        when / <[4..5]> <[0..9]> <[0..9]> / {
+            X::LWP::Simple::Response.new(
+                status => $status,
+                headers => $resp_headers,
+                content => self!decode-response( :$resp_headers, :$resp_content )
+            ).throw;
+        }
+
         when / 30 <[12]> / {
             my %resp_headers = $resp_headers.hash;
             my $new_url = %resp_headers<Location>;
@@ -100,27 +109,8 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
 
         when / 20 <[0..9]> / {
 
-            # should be fancier about charset decoding application - someday
-            if  $resp_headers<Content-Type> &&
-                $resp_headers<Content-Type> ~~
-                    /   $<media-type>=[<-[/;]>+]
-                        [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
-                (   $<media-type> eq 'text' ||
-                    (   $<media-type> eq 'application' &&
-                        $<media-subtype> ~~ /[ ecma | java ]script | json/
-                    )
-                )
-            {
-                my $charset = 
-                    ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
-                $charset = $charset ?? $charset.Str !!
-                    self ?? $.default_encoding !! $.class_default_encoding;
-                return $resp_content.decode($charset);
-            }
-            else {
-                return $resp_content;
-            }
-            
+            return self!decode-response( :$resp_headers, :$resp_content );
+
         }
 
         # Response failed
@@ -129,6 +119,29 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
         }
     }
 
+}
+
+method !decode-response( :$resp_headers, :$resp_content ) {
+    # should be fancier about charset decoding application - someday
+    if  $resp_headers<Content-Type> &&
+        $resp_headers<Content-Type> ~~
+            /   $<media-type>=[<-[/;]>+]
+                [ <[/]> $<media-subtype>=[<-[;]>+] ]? /  &&
+        (   $<media-type> eq 'text' ||
+            (   $<media-type> eq 'application' &&
+                $<media-subtype> ~~ /[ ecma | java ]script | json/
+            )
+        )
+    {
+        my $charset =
+            ($resp_headers<Content-Type> ~~ /charset\=(<-[;]>*)/)[0];
+        $charset = $charset ?? $charset.Str !!
+            self ?? $.default_encoding !! $.class_default_encoding;
+        return $resp_content.decode($charset);
+    }
+    else {
+        return $resp_content;
+    }
 }
 
 method parse_chunks(Blob $b is rw, $sock) {
