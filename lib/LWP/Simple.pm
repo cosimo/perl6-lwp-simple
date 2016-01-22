@@ -5,6 +5,7 @@ use v6;
 use MIME::Base64;
 use URI;
 use URI::Escape;
+use X::LWP::Simple::Response;
 try require IO::Socket::SSL;
 
 unit class LWP::Simple:auth<cosimo>:ver<0.090>;
@@ -80,6 +81,14 @@ method request_shell (RequestType $rt, Str $url, %headers = {}, Any $content?) {
         self.make_request($rt, $hostname, $port, $path, %headers, $content, :$ssl);
 
     given $status {
+
+        when / <[4..5]> <[0..9]> <[0..9]> / {
+            X::LWP::Simple::Response.new(
+                status => $status,
+                headers => $resp_headers,
+                content => self!decode-response( :$resp_headers, :$resp_content )
+            ).throw;
+        }
 
         when / 30 <[12]> / {
             my %resp_headers = $resp_headers.hash;
